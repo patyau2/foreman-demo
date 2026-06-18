@@ -1,6 +1,6 @@
 "use strict";
 /* Foreman frontend — works in LIVE mode (talks to the backend) or MOCK mode (static demo). */
-window.onerror = function (m, s, l, c) { var b = document.getElementById('errbar'); if (b) { b.style.display = 'block'; b.textContent = 'JS error: ' + m + ' (' + l + ':' + c + ')'; } };
+window.onerror = function (m, s, l, c) { if (s && s.indexOf('app.js') === -1) return; var b = document.getElementById('errbar'); if (b) { b.style.display = 'block'; b.textContent = 'JS error: ' + m + ' (' + l + ':' + c + ')'; } };
 
 /* ============================ helpers ============================ */
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -85,9 +85,11 @@ function clone(o){return JSON.parse(JSON.stringify(o));}
 function getT(id){for(var i=0;i<S.tickets.length;i++)if(S.tickets[i].id===id)return S.tickets[i];return null;}
 function replaceT(t){for(var i=0;i<S.tickets.length;i++)if(S.tickets[i].id===t.id){S.tickets[i]=t;return;}S.tickets.unshift(t);}
 
-async function jget(p){var r=await fetch(p,{cache:'no-store'});return r.json();}
-async function jpost(p,b){var r=await fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});var j=await r.json();if(!j.ok)throw new Error(j.error||'request failed');return j;}
-async function jdel(p){var r=await fetch(p,{method:'DELETE'});return r.json();}
+var TOKEN=(typeof window!=='undefined'&&window.__FORE)||'';
+function H(extra){var h={'x-foreman-token':TOKEN};if(extra)for(var k in extra)h[k]=extra[k];return h;}
+async function jget(p){var r=await fetch(p,{cache:'no-store',headers:H()});return r.json();}
+async function jpost(p,b){var r=await fetch(p,{method:'POST',headers:H({'Content-Type':'application/json'}),body:JSON.stringify(b||{})});var j=await r.json();if(!j.ok)throw new Error(j.error||'request failed');return j;}
+async function jdel(p){var r=await fetch(p,{method:'DELETE',headers:H()});return r.json();}
 async function pullState(){var j=await jget('/api/state');if(j.ok)S=j.state;return S;}
 
 async function boot(){
