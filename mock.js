@@ -28,6 +28,12 @@
     },
     gate: { requireHumanMerge: true, strictness: 'Balanced', writeEnabled: false },
     agents: agents(),
+    team: [
+      { id: 'tm1', name: 'Jordan', role: 'Tech Lead', areas: 'fullstack, architecture', slack: '@jordan', github: 'jordan', notify: { reviewReady: true, failure: true } },
+      { id: 'tm2', name: 'Riley', role: 'Backend Engineer', areas: 'backend, api, database', slack: '@riley', github: 'riley', notify: { reviewReady: true } },
+      { id: 'tm3', name: 'Casey', role: 'Frontend Engineer', areas: 'frontend, ui', slack: '@casey', github: 'casey', notify: { reviewReady: true } },
+      { id: 'tm4', name: 'Sam', role: 'Product Manager', areas: 'planning, client comms', slack: '@sam', clientFacing: true, notify: { done: true } }
+    ],
     secrets: [
       { name: 'VITE_SUPABASE_URL', masked: '••••••••', addedAt: T },
       { name: 'VITE_SUPABASE_ANON_KEY', masked: '••••••••', addedAt: T }

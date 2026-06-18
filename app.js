@@ -80,6 +80,9 @@ function md(src){
 
 /* ============================ state + mode ============================ */
 var MODE='mock', S=null, view='setup', selected=null, setupStep=0, ctxPoll=null, runPoll=null;
+var teamEdit=null;
+var ROLES=['Tech Lead','Backend Engineer','Frontend Engineer','Full-stack Engineer','Product Manager','QA / Tester','Designer','DevOps','Security','Client / Stakeholder','Other'];
+var NOTIFY=[['reviewReady','Review ready'],['securityFlag','Security flag'],['done','On done'],['failure','On failure']];
 
 function clone(o){return JSON.parse(JSON.stringify(o));}
 function getT(id){for(var i=0;i<S.tickets.length;i++)if(S.tickets[i].id===id)return S.tickets[i];return null;}
@@ -155,7 +158,7 @@ function topbar(){
 function pageBody(){if(view==='board')return viewBoard();if(view==='settings')return viewSettings();if(view==='ticket')return viewTicket();if(view==='newticket')return viewNewTicket();return '';}
 
 /* ============================ SETUP WIZARD ============================ */
-var STEPS=['Workspace','GitHub','Repository','Project context','Slack','Secrets','Crew & gates','Done'];
+var STEPS=['Workspace','GitHub','Repository','Project context','Slack','Secrets','Crew & gates','Team','Done'];
 function viewSetup(){
   var n=setupStep,total=STEPS.length,bars='';
   for(var i=0;i<total;i++)bars+='<div class="s '+(i<n?'done':i===n?'cur':'')+'"></div>';
@@ -174,6 +177,7 @@ function setupHead(n){
     ['Connect Slack','Where Foreman posts status and review requests.'],
     ['Secrets','Drop in your .env — stored write-only and encrypted. Add or remove any key.'],
     ['Your crew & gates','Five agents run every ticket. You decide the gates.'],
+    ['Your team','So Foreman knows who to assign each ticket to and who to message. Not sure? We’ve filled an example you can edit.'],
     ['You’re set up','Here’s what Foreman does on every ticket.']];
   return '<h1 style="margin-top:10px">'+esc(H[n][0])+'</h1><div class="sub" style="margin-top:4px">'+esc(H[n][1])+'</div>';
 }
@@ -223,7 +227,8 @@ function setupBody(n){
   }
   if(n===5)return secretsUI();
   if(n===6)return crewUI();
-  if(n===7)return setupSummary();
+  if(n===7)return teamUI();
+  if(n===8)return setupSummary();
   return '';
 }
 function ctxRow(k,v,mono){return '<div class="ctxfield"><div class="ctxk">'+esc(k)+'</div><div class="tmpl-v'+(mono?' mono':'')+'" style="'+(mono?'font-size:12.5px':'')+'">'+esc(v||'—')+'</div></div>';}
@@ -244,6 +249,47 @@ function crewUI(){
     +'<div class="field" style="margin-top:12px"><label class="label">Gate strictness</label><select class="select" id="strict">'+opt(['Lenient','Balanced','Strict'],S.gate.strictness)+'</select></div>';
 }
 function gateToggle(t,d,on,act){return '<div class="row between" style="margin-bottom:12px"><div style="padding-right:12px"><div style="font-weight:570">'+esc(t)+'</div><div class="hint" style="margin-top:2px">'+esc(d)+'</div></div><div class="toggle '+(on?'on':'')+'" data-act="'+act+'"></div></div>';}
+
+/* ---------- team ---------- */
+function teamUI(){
+  var members=(S.team||[]);
+  var list=members.length?members.map(teamCard).join(''):'<div class="sub" style="padding:4px 0 8px">No one added yet — use the example team, or add your first person.</div>';
+  var editing=teamEdit!==null;
+  return '<div class="callout info" style="margin-top:0">'+ic('user',16)+'<div><b>Why this matters:</b> Foreman uses <b>roles</b> to decide who handles each ticket (frontend vs backend) and <b>Slack handles</b> to message the right person for reviews. Add at least your tech lead and one developer.</div></div>'
+    +'<div style="margin:14px 0 6px">'+list+'</div>'
+    +(editing?teamForm(teamEdit):'<div class="row" style="gap:9px;margin-top:6px"><button class="btn btn-primary btn-sm" data-act="team-add">'+ic('plus',15)+'Add team member</button>'+(members.length?'':'<button class="btn btn-ghost btn-sm" data-act="team-seed">'+ic('spark',15)+'Use an example team</button>')+'</div>');
+}
+function teamCard(m){
+  var chips=NOTIFY.filter(function(n){return m.notify&&m.notify[n[0]];}).map(function(n){return chip(n[1],'mut');}).join('');
+  return '<div class="crew-row" style="align-items:flex-start"><div class="ws-ava" style="width:32px;height:32px;border-radius:9px;flex:0 0 auto">'+esc(initials(m.name||'?'))+'</div>'
+    +'<div style="flex:1;min-width:0"><div class="row" style="gap:8px;flex-wrap:wrap"><span style="font-weight:570">'+esc(m.name)+'</span>'+(m.role?chip(m.role,'brand'):'')+(m.clientFacing?chip('Client-facing','vio'):'')+'</div>'
+    +'<div class="sub" style="font-size:12px;margin-top:3px">'+(m.areas?esc(m.areas)+' · ':'')+(m.slack?'<span class="mono">'+esc(m.slack)+'</span>':'<span class="faint">no Slack handle</span>')+'</div>'
+    +(chips?'<div class="row" style="gap:5px;margin-top:6px;flex-wrap:wrap">'+chips+'</div>':'')+'</div>'
+    +'<button class="iconbtn" data-act="team-edit" data-id="'+esc(m.id)+'" title="Edit">'+ic('settings',15)+'</button>'
+    +'<button class="iconbtn" data-act="team-del" data-id="'+esc(m.id)+'" title="Remove">'+ic('trash',15)+'</button></div>';
+}
+function teamForm(m){
+  m=m||{};
+  var roleOpts=ROLES.map(function(r){return '<option '+(r===m.role?'selected':'')+'>'+esc(r)+'</option>';}).join('');
+  var notifyChips=NOTIFY.map(function(n){var on=m.notify&&m.notify[n[0]];return '<button class="chip '+(on?'chip-brand':'chip-out')+'" data-act="team-notify" data-k="'+n[0]+'" style="cursor:pointer;height:26px;padding:0 10px">'+esc(n[1])+'</button>';}).join('');
+  return '<div class="card" style="padding:16px;margin-top:6px"><h3 style="margin-bottom:10px">'+(m.id?'Edit member':'Add a team member')+'</h3>'
+    +'<div class="inline-2"><div class="field"><label class="label">Name</label><input class="input" id="tm_name" value="'+esc(m.name||'')+'" placeholder="e.g. Alan Wong"></div>'
+    +'<div class="field"><label class="label">Role</label><select class="select" id="tm_role">'+roleOpts+'</select></div></div>'
+    +'<div class="field"><label class="label">What they work on</label><input class="input" id="tm_areas" value="'+esc(m.areas||'')+'" placeholder="e.g. backend, payments, auth"><div class="hint">Comma-separated. Foreman matches each ticket to the right person by this — frontend vs backend matters most.</div></div>'
+    +'<div class="inline-2"><div class="field"><label class="label">Slack handle <span class="faint">— for DMs</span></label><input class="input mono" id="tm_slack" value="'+esc(m.slack||'')+'" placeholder="@alan"><div class="hint">So Foreman can message them for reviews.</div></div>'
+    +'<div class="field"><label class="label">GitHub username <span class="faint">— optional</span></label><input class="input mono" id="tm_github" value="'+esc(m.github||'')+'" placeholder="alan-dev"><div class="hint">Used to request them as a PR reviewer.</div></div></div>'
+    +'<div class="field"><label class="label">Notify them when…</label><div class="row" style="gap:6px;flex-wrap:wrap">'+notifyChips+'</div></div>'
+    +'<div class="row between" style="margin:2px 0 14px"><div style="padding-right:12px"><div style="font-weight:540;font-size:13px">Client-facing</div><div class="hint">They get the client-friendly "done" updates.</div></div><div class="toggle '+(m.clientFacing?'on':'')+'" data-act="team-cf"></div></div>'
+    +'<div class="row" style="gap:9px;justify-content:flex-end"><button class="btn btn-ghost btn-sm" data-act="team-cancel">Cancel</button><button class="btn btn-primary btn-sm" data-act="team-save">'+ic('check',15)+'Save member</button></div></div>';
+}
+function captureTeamForm(){
+  if(!teamEdit)teamEdit={notify:{}};
+  if(document.getElementById('tm_name'))teamEdit.name=val('tm_name');
+  if(document.getElementById('tm_role'))teamEdit.role=val('tm_role');
+  if(document.getElementById('tm_areas'))teamEdit.areas=val('tm_areas');
+  if(document.getElementById('tm_slack'))teamEdit.slack=val('tm_slack');
+  if(document.getElementById('tm_github'))teamEdit.github=val('tm_github');
+}
 function setupSummary(){
   return '<div class="hero-cta" style="padding:6px 0 16px"><div class="ic">'+ic('flow',26)+'</div><h2>Every ticket runs the same governed pipeline</h2><div class="sub" style="max-width:440px;margin:6px auto 0">File a ticket → the crew plans, builds, tests, reviews and security-checks it against '+esc(S.project?S.project.repo:'your repo')+' → you get a PR to approve. Nothing merges without you.</div></div>'
     +'<div class="card" style="padding:6px 4px">'+mini('P','#4f46e5','Planner','Buildable? Definition of done')+mini('I','#2563eb','Implementer','Code + tests on a branch')+mini('T','#0a8f5b','Test gate','Hard pass / fail')+mini('R','#b45309','Reviewer','Adversarial diff review')+mini('S','#7c3aed','Security reviewer','Threat-models sensitive paths')+mini('↗','#0b0c0e','Pull request','Your approval gate')+'</div>';
@@ -265,7 +311,7 @@ function boardCard(t){
   if(t.runnable&&t.status==='inbox')tags+=dotchip('Ready to run','brand');
   if(t.status==='review')tags+=chip('PR','amb');
   if(t.run&&t.run.status==='running')tags+=dotchip('Running','blu');
-  return '<div class="tcard" data-act="open" data-id="'+t.id+'"><div class="tt">'+esc(t.title)+'</div><div class="meta">'+prChip(t.priority)+tags+'<span class="idtag">'+esc(t.ref)+'</span></div></div>';
+  return '<div class="tcard" data-act="open" data-id="'+t.id+'"><div class="tt">'+esc(t.title)+'</div><div class="meta">'+prChip(t.priority)+tags+(t.assignee?'<span class="chip chip-out" title="'+esc(t.assignee)+'">'+esc(initials(t.assignee))+'</span>':'')+'<span class="idtag">'+esc(t.ref)+'</span></div></div>';
 }
 
 /* ============================ NEW TICKET ============================ */
@@ -294,9 +340,9 @@ function viewTicket(){
   else if(t.status==='in_progress')area=infoPanel('In progress',t.stage||'The crew is working on this ticket.','blu');
   else if(t.runnable)area=runCTA(t);
   else area=infoPanel('Queued','This ticket is in the backlog.','mut');
-  var side='<div class="card side-card"><div class="sc-h">Details</div>'+kv('Status',dotchip(st.l,st.k))+kv('Priority',prChip(t.priority))+kv('Reference','<span class="mono">'+esc(t.ref)+'</span>')+kv('Repo','<span class="mono" style="font-size:11.5px">'+esc(S.project?S.project.repo:'—')+'</span>')+'</div>'
+  var side='<div class="card side-card"><div class="sc-h">Details</div>'+kv('Status',dotchip(st.l,st.k))+kv('Priority',prChip(t.priority))+kv('Assignee',t.assignee?esc(t.assignee):'<span class="faint">unassigned</span>')+kv('Reference','<span class="mono">'+esc(t.ref)+'</span>')+kv('Repo','<span class="mono" style="font-size:11.5px">'+esc(S.project?S.project.repo:'—')+'</span>')+'</div>'
     +'<div class="card side-card"><div class="sc-h">Confinement</div><div style="padding:12px 16px;font-size:12.5px;color:var(--ink2);line-height:1.7">'+ic('shield',14)+' Repo + tests only.<br>'+ic('shield',14)+' '+(S.gate.writeEnabled?'Write mode: branch + PR on approve.':'Read-only this run.')+'<br>'+ic('shield',14)+' Secrets runtime-only, never logged.</div></div>';
-  return '<div style="margin-bottom:16px"><div class="row" style="gap:10px;flex-wrap:wrap"><h1>'+esc(t.title)+'</h1>'+dotchip(st.l,st.k)+prChip(t.priority)+'</div></div>'
+  return '<div style="margin-bottom:16px"><div class="row" style="gap:10px;flex-wrap:wrap"><h1>'+esc(t.title)+'</h1>'+dotchip(st.l,st.k)+prChip(t.priority)+(t.assignee?chip(t.assignee,'out'):'')+'</div></div>'
     +'<div class="detail-grid"><div>'+main+'<div style="height:18px"></div>'+area+'</div><div>'+side+'</div></div>';
 }
 function tf(k,v){return '<div class="tmpl-field"><div class="tmpl-k">'+esc(k)+'</div><div class="tmpl-v">'+esc(v)+'</div></div>';}
@@ -329,12 +375,23 @@ function renderStage(s,running){
 }
 function pendingStage(s){return '<div class="tl-stage"><span class="tl-node pending">'+s.mono+'</span><div class="tl-running" style="padding-top:5px">Next: '+esc(s.name)+' <span class="dots"><i></i><i></i><i></i></span></div></div>';}
 function verdictKind(v){v=String(v).toUpperCase();if(/BUILDABLE|READY|PASS|APPROVE$|^APPROVE /.test(v))return 'grn';if(/NOTE|AT_RISK|REQUEST|NEEDS/.test(v))return 'amb';if(/BLOCK|ERROR|TIMEOUT/.test(v))return 'red';if(/AWAITING/.test(v))return 'amb';if(/FILES|DONE/.test(v))return 'blu';return 'vio';}
+function renderRouting(t){
+  var r=t.run&&t.run.routing, team=S.team||[];
+  if(!r&&!team.length)return '';
+  var sel=(t.assignee)||(r&&r.assignee&&r.assignee.name)||'';
+  var assignOpts=team.map(function(m){return '<option '+(sel===m.name?'selected':'')+'>'+esc(m.name)+'</option>';}).join('');
+  var notifyRows=(r&&r.notify&&r.notify.length)?r.notify.map(function(n){return '<div class="kv"><span class="kk">'+esc(n.name)+(n.slack?' <span class="mono faint">'+esc(n.slack)+'</span>':'')+'</span><span class="vv">'+esc(n.event)+'</span></div>';}).join(''):'';
+  return '<div class="card" style="margin-top:14px"><div class="sc-h" style="padding:14px 16px 0">Routing'+(r&&r.reason?' · '+esc(r.reason):'')+'</div>'
+    +'<div style="padding:10px 16px">'+(team.length?'<label class="label">Assign to</label><div class="row" style="gap:8px"><select class="select" id="assignSel" style="max-width:240px">'+assignOpts+'</select><button class="btn btn-ghost btn-sm" data-act="assign" data-id="'+t.id+'">Set</button></div>':'<div class="sub">Add team members under Setup &amp; agents to enable assignment + Slack routing.</div>')+'</div>'
+    +(notifyRows?'<div class="sc-h" style="padding:4px 16px 0">Notify on Slack</div>'+notifyRows+'<div class="hint" style="padding:8px 16px 14px">Recommended from your team’s roles. Slack delivery is the next wire-up.</div>':'<div style="height:6px"></div>')
+    +'</div>';
+}
 function renderGate(t){
-  return '<div class="gate"><div class="gh">'+ic('user',17)+'<h2 style="font-size:15px">Your approval gate</h2></div><div class="sub" style="margin-bottom:14px">The crew finished its run. Review above and decide — nothing reaches '+esc(S.project?S.project.branch:'main')+' until you approve.</div>'
+  return renderRouting(t)+'<div class="gate"><div class="gh">'+ic('user',17)+'<h2 style="font-size:15px">Your approval gate</h2></div><div class="sub" style="margin-bottom:14px">The crew finished its run. Review above and decide — nothing reaches '+esc(S.project?S.project.branch:'main')+' until you approve.</div>'
     +'<div class="row" style="gap:10px"><button class="btn btn-grn btn-lg" data-act="approve" data-id="'+t.id+'">'+ic('check',16)+(S.gate.writeEnabled?'Approve &amp; open PR':'Approve')+'</button><button class="btn btn-ghost btn-lg" data-act="reqchg" data-id="'+t.id+'">Request changes</button></div></div>';
 }
 function mergedSummary(t){
-  return '<div class="callout ok" style="margin-top:16px">'+ic('check',18)+'<div><b>Approved.</b> Card moved to Done. '+(S.gate.writeEnabled?'A draft PR was opened for the human merge.':'Enable write mode to open a real PR on approve.')+'</div></div>'
+  return renderRouting(t)+'<div class="callout ok" style="margin-top:16px">'+ic('check',18)+'<div><b>Approved.</b> Card moved to Done. '+(S.gate.writeEnabled?'A draft PR was opened for the human merge.':'Enable write mode to open a real PR on approve.')+'</div></div>'
     +(t.run&&t.run.totalCost?'<div class="card" style="margin-top:14px"><div class="sc-h" style="padding:14px 16px 0">Logged automatically</div>'+kv('AI engineering cost','<span class="mono">'+fmtCost(t.run.totalCost)+'</span>')+kv('Stages',(t.run.stages||[]).filter(function(s){return s.status==='done';}).length+'')+'</div>':'');
 }
 function doneSummary(t){var d=t.done;return '<div class="callout ok">'+ic('check',18)+'<div><b>Shipped.</b> PR #'+d.pr+' merged.</div></div><div class="card" style="margin-top:14px"><div class="md" style="padding:15px 17px"><b>✅ Fixed:</b> '+esc(d.fixed)+'</div></div>'+(d.ai?'<div class="card" style="margin-top:14px"><div class="sc-h" style="padding:14px 16px 0">Logged</div>'+kv('AI time','<span class="mono">'+esc(d.ai)+'</span>')+kv('Human review','<span class="mono">'+esc(d.human)+'</span>')+'</div>':'');}
@@ -353,6 +410,7 @@ function viewSettings(){
    +'<div class="panel" style="margin-bottom:16px"><div class="between" style="margin-bottom:8px"><h2>Project context</h2>'+(c.deriving?'<span class="row sub"><span class="spinner"></span>reading…</span>':'<button class="btn btn-soft btn-sm" data-act="rederive">'+ic('refresh',14)+'Re-derive</button>')+'</div>'
      +(c.summary||c.stack?'<div class="card" style="padding:4px 16px">'+ctxRow('Summary',c.summary)+ctxRow('Stack',c.stack)+ctxRow('Test command',c.testCmd,true)+ctxRow('Sensitive paths',c.sensitive,true)+'</div>':'<div class="sub">Connect a repo to derive context.</div>')+'</div>'
    +'<div class="panel" style="margin-bottom:16px"><h2 style="margin-bottom:10px">Secrets</h2>'+secretsUI()+'</div>'
+   +'<div class="panel" style="margin-bottom:16px"><h2 style="margin-bottom:10px">Team &amp; routing</h2>'+teamUI()+'</div>'
    +'<div class="panel"><div class="between" style="margin-bottom:6px"><h2>The crew</h2><span class="sub">Framework prompts managed · read-only audit</span></div><div style="margin-top:10px">'+crewUI()+'</div></div>'
    +'</div>';
 }
@@ -397,6 +455,15 @@ async function act(a,ds){
    case 'toggle-merge': await setGate({requireHumanMerge:!S.gate.requireHumanMerge});break;
    case 'toggle-write': await setGate({writeEnabled:!S.gate.writeEnabled});break;
    case 'rederive': await rederive();break;
+   case 'team-add': teamEdit={notify:{}};render();break;
+   case 'team-edit': var _m=(S.team||[]).find(function(x){return x.id===ds.id;});teamEdit=_m?clone(_m):{notify:{}};render();break;
+   case 'team-cancel': teamEdit=null;render();break;
+   case 'team-notify': captureTeamForm();if(!teamEdit.notify)teamEdit.notify={};teamEdit.notify[ds.k]=!teamEdit.notify[ds.k];render();break;
+   case 'team-cf': captureTeamForm();teamEdit.clientFacing=!teamEdit.clientFacing;render();break;
+   case 'team-save': await teamSave();break;
+   case 'team-del': await teamDel(ds.id);break;
+   case 'team-seed': await teamSeed();break;
+   case 'assign': await assignTicket(ds.id);break;
   }
   }catch(e){toast(String(e.message||e),true);}
 }
@@ -450,6 +517,38 @@ async function rederive(){
   if(MODE!=='live'||!S.project)return;
   await jpost('/api/project/connect',{repo:S.project.repo});await pullState();startContextPolling();toast('Re-reading the repo…');render();
 }
+async function teamSave(){
+  captureTeamForm();
+  if(!teamEdit.name||!teamEdit.name.trim()){toast('Enter a name',true);return;}
+  if(MODE==='live'){var j=await jpost('/api/team',teamEdit);S.team=j.team;}
+  else{
+    if(teamEdit.id){var i=S.team.findIndex(function(x){return x.id===teamEdit.id;});if(i>-1)S.team[i]=Object.assign({},S.team[i],teamEdit);}
+    else{teamEdit.id='tm'+Date.now()+Math.floor(Math.random()*9999);S.team.push(teamEdit);}
+  }
+  teamEdit=null;render();toast('Team updated');
+}
+async function teamDel(id){
+  if(MODE==='live'){var j=await jdel('/api/team/'+id);S.team=j.team;}else{S.team=(S.team||[]).filter(function(x){return x.id!==id;});}
+  render();
+}
+async function teamSeed(){
+  var roster=[
+    {name:'Jordan',role:'Tech Lead',areas:'fullstack, architecture',slack:'@jordan',notify:{reviewReady:true,failure:true}},
+    {name:'Riley',role:'Backend Engineer',areas:'backend, api, database',slack:'@riley',notify:{reviewReady:true}},
+    {name:'Casey',role:'Frontend Engineer',areas:'frontend, ui',slack:'@casey',notify:{reviewReady:true}},
+    {name:'Sam',role:'Product Manager',areas:'planning, client comms',slack:'@sam',clientFacing:true,notify:{done:true}}
+  ];
+  for(var i=0;i<roster.length;i++){
+    if(MODE==='live'){var j=await jpost('/api/team',roster[i]);S.team=j.team;}
+    else{S.team.push(Object.assign({id:'tm'+Date.now()+i},roster[i]));}
+  }
+  render();toast('Example team added — edit or remove anyone');
+}
+async function assignTicket(id){
+  var name=val('assignSel');if(!name)return;
+  if(MODE==='live'){var j=await jpost('/api/tickets/'+id+'/assign',{assignee:name});replaceT(j.ticket);}else{var t=getT(id);t.assignee=name;}
+  toast('Assigned to '+name);render();
+}
 async function finishSetup(){
   captureStep(setupStep);
   if(MODE==='live')await jpost('/api/setup',{complete:true});
@@ -483,6 +582,24 @@ async function doReset(){
 }
 
 /* ---- mock pipeline ---- */
+function mockRouting(t){
+  var team=S.team||[];if(!team.length)return null;
+  var text=(t.title+' '+(t.problem||'')+' '+(t.located||'')).toLowerCase();
+  var fe=/front|\bui\b|css|react|component|screen|page|design|profile|card/.test(text);
+  var be=/back|\bapi\b|database|\bdb\b|server|supabase|migration|endpoint|\bsql\b|webhook|auth/.test(text);
+  function byRole(re){return team.find(function(m){return re.test((m.role||'').toLowerCase());});}
+  function byArea(re){return team.find(function(m){return re.test((m.areas||'').toLowerCase());});}
+  var a=null,reason='';
+  if(fe){a=byArea(/front|\bui\b|web|design/)||byRole(/front|design/);reason='frontend work';}
+  if(!a&&be){a=byArea(/back|\bapi\b|server|data|supabase/)||byRole(/back/);reason='backend work';}
+  if(!a){a=byRole(/lead|full/)||team[0];reason='general — routed to lead';}
+  var lead=byRole(/lead/)||a,pm=byRole(/product|\bpm\b|manager/),notify=[];
+  function push(m,e){if(m&&m.name)notify.push({name:m.name,slack:m.slack||'',event:e});}
+  push(lead,'review ready — please review');
+  if(pm&&pm!==lead)push(pm,'on merge');
+  team.filter(function(m){return m.clientFacing;}).forEach(function(c){push(c,'on done (client-facing)');});
+  return {assignee:a?{name:a.name,slack:a.slack||'',role:a.role||''}:null,reason:reason,notify:notify};
+}
 function mockRun(id){
   var t=getT(id);var stages=id==='hero'?window.MOCK.heroStages:genericStages(t);
   t.run={status:'running',startedAt:Date.now(),writeEnabled:S.gate.writeEnabled,totalCost:0,stages:stages.map(function(s){return {key:s.key,name:s.name,mono:s.mono,color:s.color,status:'pending',verdict:null,body:'',durationMs:0,costUsd:0};})};
@@ -492,7 +609,7 @@ function mockRun(id){
     var s=stages[i],rs=t.run.stages[i];rs.status='running';if(s.cardStatus)t.status=s.cardStatus;render();scrollRun();
     setTimeout(function(){
       rs.status='done';rs.verdict=s.verdict;rs.body=s.body;rs.durationMs=s.durationMs;rs.costUsd=s.costUsd;t.run.totalCost+=s.costUsd||0;
-      if(s.key==='pr'){rs.verdict='AWAITING REVIEW';t.status='review';t.run.status='awaiting_gate';render();scrollRun();return;}
+      if(s.key==='pr'){rs.verdict='AWAITING REVIEW';t.run.routing=mockRouting(t);if(t.run.routing&&t.run.routing.assignee&&!t.assignee)t.assignee=t.run.routing.assignee.name;t.status='review';t.run.status='awaiting_gate';render();scrollRun();return;}
       i++;render();scrollRun();if(i<stages.length)setTimeout(step,450);
     },1150);
   })();
