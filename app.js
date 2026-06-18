@@ -474,12 +474,12 @@ function captureStep(n){
   if(n===6&&document.getElementById('strict')){S.gate.strictness=val('strict');if(MODE==='live')setGate({strictness:S.gate.strictness});}
 }
 async function onEnterStep(n){
-  if(n===2&&!window.__repos){ try{ if(MODE==='live'){var j=await jget('/api/github/repos');window.__repos=j.repos||[];}else{window.__repos=[{full:'Owl-Social/bar-hop-connect-match',language:'TypeScript',visibility:'private',pushedAt:'2026-06-05'},{full:'patyau2/rlxhk',language:'TypeScript',visibility:'private',pushedAt:'2026-06-12'}];} }catch(e){window.__repos=[];} }
+  if(n===2&&!window.__repos){ try{ if(MODE==='live'){var j=await jget('/api/github/repos');window.__repos=j.repos||[];}else{window.__repos=[{full:'acme-digital/connect-app',language:'TypeScript',visibility:'private',pushedAt:'2026-06-05'},{full:'acme-digital/marketing-site',language:'TypeScript',visibility:'private',pushedAt:'2026-06-12'}];} }catch(e){window.__repos=[];} }
   if(n===3&&MODE==='live'&&S.context&&S.context.deriving)startContextPolling();
 }
 async function ghConnect(){
   if(MODE==='live'){await jpost('/api/github/connect');await pullState();}
-  else{S.github={connected:true,account:'patyau2',orgs:['Owl-Social']};}
+  else{S.github={connected:true,account:'acme-digital',orgs:['acme-digital']};}
   toast('GitHub connected');render();
 }
 async function pickRepo(repo){
