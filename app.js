@@ -1,5 +1,5 @@
 "use strict";
-/* Foreman frontend — works in LIVE mode (talks to the backend) or MOCK mode (static demo). */
+/* AI Consulting Platform frontend — works in LIVE mode (talks to the backend) or MOCK mode (static demo). */
 window.onerror = function (m, s, l, c) { if (s && s.indexOf('app.js') === -1) return; var b = document.getElementById('errbar'); if (b) { b.style.display = 'block'; b.textContent = 'JS error: ' + m + ' (' + l + ':' + c + ')'; } };
 
 /* ============================ helpers ============================ */
@@ -89,7 +89,7 @@ function getT(id){for(var i=0;i<S.tickets.length;i++)if(S.tickets[i].id===id)ret
 function replaceT(t){for(var i=0;i<S.tickets.length;i++)if(S.tickets[i].id===t.id){S.tickets[i]=t;return;}S.tickets.unshift(t);}
 
 var TOKEN=(typeof window!=='undefined'&&window.__FORE)||'';
-function H(extra){var h={'x-foreman-token':TOKEN};if(extra)for(var k in extra)h[k]=extra[k];return h;}
+function H(extra){var h={'x-acp-token':TOKEN};if(extra)for(var k in extra)h[k]=extra[k];return h;}
 async function jget(p){var r=await fetch(p,{cache:'no-store',headers:H()});return r.json();}
 async function jpost(p,b){var r=await fetch(p,{method:'POST',headers:H({'Content-Type':'application/json'}),body:JSON.stringify(b||{})});var j=await r.json();if(!j.ok)throw new Error(j.error||'request failed');return j;}
 async function jdel(p){var r=await fetch(p,{method:'DELETE',headers:H()});return r.json();}
@@ -133,7 +133,7 @@ function render(){
   var open=S.tickets.filter(function(t){return t.status!=='done';}).length;
   app.innerHTML=
    '<aside class="sidebar">'
-    +'<div class="brand"><span class="brandmark">'+ic('check',17,2.4)+'</span><div><div class="brandname">Foreman</div><div class="brandsub">AI delivery, governed</div></div></div>'
+    +'<div class="brand"><span class="brandmark">'+ic('check',17,2.4)+'</span><div><div class="brandname">AI Consulting Platform</div><div class="brandsub">AI delivery, governed</div></div></div>'
     +'<div class="ws"><div class="ws-ava">'+esc(initials(S.workspace.name||'WS'))+'</div><div style="min-width:0"><div class="ws-name">'+esc(S.workspace.name||'Workspace')+'</div><div class="ws-meta">'+esc(S.project?S.project.repo:'no repo')+'</div></div></div>'
     +'<div class="navlbl">Workspace</div>'
     +'<nav class="nav">'+navitem('board','board','Board','<span class="ct">'+open+'</span>')+navitem('settings','settings','Setup &amp; agents','')+'</nav>'
@@ -148,7 +148,7 @@ function render(){
 function initials(n){return n.split(/\s+/).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();}
 function navitem(v,icn,label,extra){return '<a class="navitem '+(view===v?'on':'')+'" data-act="nav" data-view="'+v+'">'+ic(icn,17)+'<span>'+label+'</span>'+extra+'</a>';}
 function topbar(){
-  var left='<span class="page-title">Foreman</span>',right='';
+  var left='<span class="page-title">AI Consulting Platform</span>',right='';
   if(view==='board'){left='<span class="page-title">Board</span>';right='<button class="btn btn-primary" data-act="newticket">'+ic('plus',16)+'New ticket</button>';}
   else if(view==='settings')left='<span class="page-title">Setup &amp; agents</span>';
   else if(view==='ticket'){var t=getT(selected);left='<div class="row"><button class="btn btn-ghost btn-sm" data-act="nav" data-view="board">'+ic('chevl',15)+'Board</button><span class="page-title">'+(t?esc(t.ref):'Ticket')+'</span></div>';}
@@ -162,7 +162,7 @@ var STEPS=['Workspace','GitHub','Repository','Project context','Slack','Secrets'
 function viewSetup(){
   var n=setupStep,total=STEPS.length,bars='';
   for(var i=0;i<total;i++)bars+='<div class="s '+(i<n?'done':i===n?'cur':'')+'"></div>';
-  return '<div class="setup"><div class="setup-top"><div class="brand" style="padding:0"><span class="brandmark">'+ic('check',17,2.4)+'</span><div><div class="brandname">Foreman</div><div class="brandsub">AI delivery, governed</div></div></div>'
+  return '<div class="setup"><div class="setup-top"><div class="brand" style="padding:0"><span class="brandmark">'+ic('check',17,2.4)+'</span><div><div class="brandname">AI Consulting Platform</div><div class="brandsub">AI delivery, governed</div></div></div>'
     +'<div class="row sub">'+ic('clock',15)+'<span>~10 min, one time</span></div></div>'
     +'<div class="setup-card"><div class="setup-head"><div class="steps">'+bars+'</div><div class="stepno">Step '+(n+1)+' of '+total+' · '+esc(STEPS[n])+'</div>'+setupHead(n)+'</div>'
     +'<div class="setup-body">'+setupBody(n)+'</div>'
@@ -171,14 +171,14 @@ function viewSetup(){
 }
 function setupHead(n){
   var H=[['Create your workspace','One workspace per agency or team. The Claude Code engine is already connected — no API key to set up.'],
-    ['Connect GitHub','Foreman opens branches and PRs here. Least-privilege, per repo.'],
-    ['Choose a repository','Pick the project Foreman will work on. We clone it read-only to plan against.'],
+    ['Connect GitHub','AI Consulting Platform opens branches and PRs here. Least-privilege, per repo.'],
+    ['Choose a repository','Pick the project AI Consulting Platform will work on. We clone it read-only to plan against.'],
     ['Project context','The AI reads your repo and figures this out — you don’t fill it in.'],
-    ['Connect Slack','Where Foreman posts status and review requests.'],
+    ['Connect Slack','Where AI Consulting Platform posts status and review requests.'],
     ['Secrets','Drop in your .env — stored write-only and encrypted. Add or remove any key.'],
     ['Your crew & gates','Five agents run every ticket. You decide the gates.'],
-    ['Your team','So Foreman knows who to assign each ticket to and who to message. Not sure? We’ve filled an example you can edit.'],
-    ['You’re set up','Here’s what Foreman does on every ticket.']];
+    ['Your team','So AI Consulting Platform knows who to assign each ticket to and who to message. Not sure? We’ve filled an example you can edit.'],
+    ['You’re set up','Here’s what AI Consulting Platform does on every ticket.']];
   return '<h1 style="margin-top:10px">'+esc(H[n][0])+'</h1><div class="sub" style="margin-top:4px">'+esc(H[n][1])+'</div>';
 }
 function setupNext(n,total){
@@ -197,8 +197,8 @@ function setupBody(n){
   if(n===1){
     if(S.github.connected)return '<div class="connect ok"><div class="logo" style="background:#fff">'+ic('git',22)+'</div><div style="flex:1"><div style="font-weight:600">GitHub</div><div class="sub">Connected as '+esc(S.github.account)+(S.github.orgs&&S.github.orgs.length?' · orgs: '+esc(S.github.orgs.join(', ')):'')+'</div></div>'+dotchip('Connected','grn')+'</div>'
       +'<div class="scopes">'+chip('Branches & PRs','out')+chip('Per-repo access','out')+chip('Short-lived tokens','out')+'</div>'
-      +secure('Foreman uses the GitHub App / your authorized CLI — scoped to the repos you pick, never org-wide writes.');
-    return '<div class="connect"><div class="logo">'+ic('git',22)+'</div><div style="flex:1"><div style="font-weight:600">GitHub</div><div class="sub">Authorize Foreman to open branches and PRs.</div></div></div>'
+      +secure('AI Consulting Platform uses the GitHub App / your authorized CLI — scoped to the repos you pick, never org-wide writes.');
+    return '<div class="connect"><div class="logo">'+ic('git',22)+'</div><div style="flex:1"><div style="font-weight:600">GitHub</div><div class="sub">Authorize AI Consulting Platform to open branches and PRs.</div></div></div>'
       +'<div style="margin-top:14px"><button class="btn btn-primary" data-act="gh-connect" id="ghBtn">'+ic('git',16)+'Connect GitHub</button></div>'
       +secure('Least-privilege, per-repo. We never request org-wide write.');
   }
@@ -207,7 +207,7 @@ function setupBody(n){
     var list='<div class="derive-row"><span class="spinner"></span><span class="sub">Loading your repositories…</span></div>';
     if(window.__repos){ list=window.__repos.length? '<div class="repolist">'+window.__repos.map(function(r){return '<button class="repo '+(r.full===sel?'sel':'')+'" data-act="pick-repo" data-repo="'+esc(r.full)+'"><div style="min-width:0"><div class="nm">'+esc(r.full)+'</div><div class="meta"><span class="langdot"></span>'+esc(r.language||'—')+'<span>·</span>'+esc(r.visibility)+(r.pushedAt?'<span>·</span>updated '+esc(r.pushedAt.slice(0,10)):'')+'</div></div><span class="pick">'+ic('check',16)+'</span></button>';}).join('')+'</div>' : '<div class="sub">No repositories found for this account.</div>'; }
     var note=S.project?('<div class="callout ok" style="margin-top:14px">'+ic('check',16)+'<div>Connected <b>'+esc(S.project.repo)+'</b> — cloning and reading the codebase now.</div></div>'):'';
-    return list+note+(window.__repos?secure('Pick the repository Foreman should work on. We clone a shallow read-only copy to plan against.'):'');
+    return list+note+(window.__repos?secure('Pick the repository AI Consulting Platform should work on. We clone a shallow read-only copy to plan against.'):'');
   }
   if(n===3){
     var c=S.context||{};
@@ -220,7 +220,7 @@ function setupBody(n){
   if(n===4){
     if(S.slack.connected)return '<div class="connect ok"><div class="logo" style="background:#fff">'+ic('slack',22)+'</div><div style="flex:1"><div style="font-weight:600">Slack</div><div class="sub">Connected</div></div>'+dotchip('Connected','grn')+'</div>'
       +'<div class="field" style="margin-top:16px"><label class="label">Post updates to</label><input class="input" id="slackCh" value="'+esc(S.slack.channel||'#eng')+'"></div>';
-    return '<div class="connect"><div class="logo">'+ic('slack',22)+'</div><div style="flex:1"><div style="font-weight:600">Slack</div><div class="sub">Authorize Foreman to post updates.</div></div></div>'
+    return '<div class="connect"><div class="logo">'+ic('slack',22)+'</div><div style="flex:1"><div style="font-weight:600">Slack</div><div class="sub">Authorize AI Consulting Platform to post updates.</div></div></div>'
       +'<div class="field" style="margin-top:14px"><label class="label">Channel</label><input class="input" id="slackCh" value="#eng" placeholder="#eng"></div>'
       +'<button class="btn btn-primary" data-act="slack-connect">'+ic('slack',16)+'Connect Slack</button>'
       +secure('Scope: post to one channel. No history, no files, no admin.');
@@ -255,7 +255,7 @@ function teamUI(){
   var members=(S.team||[]);
   var list=members.length?members.map(teamCard).join(''):'<div class="sub" style="padding:4px 0 8px">No one added yet — use the example team, or add your first person.</div>';
   var editing=teamEdit!==null;
-  return '<div class="callout info" style="margin-top:0">'+ic('user',16)+'<div><b>Why this matters:</b> Foreman uses <b>roles</b> to decide who handles each ticket (frontend vs backend) and <b>Slack handles</b> to message the right person for reviews. Add at least your tech lead and one developer.</div></div>'
+  return '<div class="callout info" style="margin-top:0">'+ic('user',16)+'<div><b>Why this matters:</b> AI Consulting Platform uses <b>roles</b> to decide who handles each ticket (frontend vs backend) and <b>Slack handles</b> to message the right person for reviews. Add at least your tech lead and one developer.</div></div>'
     +'<div style="margin:14px 0 6px">'+list+'</div>'
     +(editing?teamForm(teamEdit):'<div class="row" style="gap:9px;margin-top:6px"><button class="btn btn-primary btn-sm" data-act="team-add">'+ic('plus',15)+'Add team member</button>'+(members.length?'':'<button class="btn btn-ghost btn-sm" data-act="team-seed">'+ic('spark',15)+'Use an example team</button>')+'</div>');
 }
@@ -275,8 +275,8 @@ function teamForm(m){
   return '<div class="card" style="padding:16px;margin-top:6px"><h3 style="margin-bottom:10px">'+(m.id?'Edit member':'Add a team member')+'</h3>'
     +'<div class="inline-2"><div class="field"><label class="label">Name</label><input class="input" id="tm_name" value="'+esc(m.name||'')+'" placeholder="e.g. Alan Wong"></div>'
     +'<div class="field"><label class="label">Role</label><select class="select" id="tm_role">'+roleOpts+'</select></div></div>'
-    +'<div class="field"><label class="label">What they work on</label><input class="input" id="tm_areas" value="'+esc(m.areas||'')+'" placeholder="e.g. backend, payments, auth"><div class="hint">Comma-separated. Foreman matches each ticket to the right person by this — frontend vs backend matters most.</div></div>'
-    +'<div class="inline-2"><div class="field"><label class="label">Slack handle <span class="faint">— for DMs</span></label><input class="input mono" id="tm_slack" value="'+esc(m.slack||'')+'" placeholder="@alan"><div class="hint">So Foreman can message them for reviews.</div></div>'
+    +'<div class="field"><label class="label">What they work on</label><input class="input" id="tm_areas" value="'+esc(m.areas||'')+'" placeholder="e.g. backend, payments, auth"><div class="hint">Comma-separated. AI Consulting Platform matches each ticket to the right person by this — frontend vs backend matters most.</div></div>'
+    +'<div class="inline-2"><div class="field"><label class="label">Slack handle <span class="faint">— for DMs</span></label><input class="input mono" id="tm_slack" value="'+esc(m.slack||'')+'" placeholder="@alan"><div class="hint">So AI Consulting Platform can message them for reviews.</div></div>'
     +'<div class="field"><label class="label">GitHub username <span class="faint">— optional</span></label><input class="input mono" id="tm_github" value="'+esc(m.github||'')+'" placeholder="alan-dev"><div class="hint">Used to request them as a PR reviewer.</div></div></div>'
     +'<div class="field"><label class="label">Notify them when…</label><div class="row" style="gap:6px;flex-wrap:wrap">'+notifyChips+'</div></div>'
     +'<div class="row between" style="margin:2px 0 14px"><div style="padding-right:12px"><div style="font-weight:540;font-size:13px">Client-facing</div><div class="hint">They get the client-friendly "done" updates.</div></div><div class="toggle '+(m.clientFacing?'on':'')+'" data-act="team-cf"></div></div>'
@@ -424,7 +424,7 @@ function openPrompt(i){
    'Test gate':'ROLE: Test gate. Run <span class="editable-hl">the test command</span>; hard pass/fail.\nNever edit code to pass.\n'+locked,
    'Reviewer':'ROLE: Reviewer. Adversarial diff review, fresh context.\n'+locked+'\nAPPROVE or REQUEST_CHANGES; default to REQUEST_CHANGES when unsure.\n'+locked,
    'Security reviewer':'ROLE: Security reviewer. Triggers on <span class="editable-hl">sensitive paths</span>.\n'+locked+'\nThreat-model secrets, authz, egress, the lethal trifecta.\n'+locked};
-  document.getElementById('modal-root').innerHTML='<div class="overlay" data-act="close-modal"><div class="modal" data-stop="1"><div class="modal-h"><div class="row" style="gap:9px"><span class="crew-mono" style="background:'+a.color+';width:26px;height:26px;border-radius:7px">'+a.mono+'</span><div><div style="font-weight:600">'+esc(a.name)+' — framework prompt</div><div class="sub" style="font-size:12px">'+chip('Read-only audit','vio')+' Managed IP · yellow = your project context</div></div></div><button class="iconbtn" data-act="close-modal">'+ic('x',17)+'</button></div><div class="modal-b"><div class="promptview">'+(map[a.name]||locked)+'</div>'+secure('You can audit how every agent behaves. The framework logic stays managed by Foreman — the only prompts you maintain are your project context.')+'</div></div></div>';
+  document.getElementById('modal-root').innerHTML='<div class="overlay" data-act="close-modal"><div class="modal" data-stop="1"><div class="modal-h"><div class="row" style="gap:9px"><span class="crew-mono" style="background:'+a.color+';width:26px;height:26px;border-radius:7px">'+a.mono+'</span><div><div style="font-weight:600">'+esc(a.name)+' — framework prompt</div><div class="sub" style="font-size:12px">'+chip('Read-only audit','vio')+' Managed IP · yellow = your project context</div></div></div><button class="iconbtn" data-act="close-modal">'+ic('x',17)+'</button></div><div class="modal-b"><div class="promptview">'+(map[a.name]||locked)+'</div>'+secure('You can audit how every agent behaves. The framework logic stays managed by AI Consulting Platform — the only prompts you maintain are your project context.')+'</div></div></div>';
 }
 
 /* ============================ actions ============================ */
@@ -552,7 +552,7 @@ async function assignTicket(id){
 async function finishSetup(){
   captureStep(setupStep);
   if(MODE==='live')await jpost('/api/setup',{complete:true});
-  S.setupComplete=true;view='board';render();toast('Workspace ready — welcome to Foreman');
+  S.setupComplete=true;view='board';render();toast('Workspace ready — welcome to AI Consulting Platform');
 }
 async function createTicket(){
   var title=val('f_title').trim();if(!title){toast('Give the ticket a title',true);return;}
